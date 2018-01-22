@@ -50,7 +50,6 @@ func IsDirExists(path string) bool {
 		return fi.IsDir()
 	}
 
-	panic("util isDirExists not reached")
 }
 
 // The IsFileExists judges path is file or not.
@@ -63,7 +62,6 @@ func IsFileExists(path string) bool {
 		return !fi.IsDir()
 	}
 
-	panic("util isFileExists not reached")
 }
 
 // The IsNum judges string is number or not.

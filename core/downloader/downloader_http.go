@@ -2,6 +2,7 @@ package downloader
 
 import (
 	"bytes"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/bitly/go-simplejson"
@@ -37,7 +38,7 @@ func NewHttpDownloader() *HttpDownloader {
 	return &HttpDownloader{}
 }
 
-func (this *HttpDownloader) Download(req *request.Request) *page.Page {
+func (this *HttpDownloader) DownloadCore(req *request.Request) *page.Page {
 	var mtype string
 	var p = page.NewPage(req)
 	mtype = req.GetResponceType()
@@ -54,6 +55,23 @@ func (this *HttpDownloader) Download(req *request.Request) *page.Page {
 		mlog.LogInst().LogError("error request type:" + mtype)
 	}
 	return p
+}
+
+func (this *HttpDownloader) Download(req *request.Request) *page.Page {
+	timeout := time.NewTimer(15 * time.Second)
+	okChan := make(chan int, 1)
+	var result *page.Page
+	defer timeout.Stop()
+	go func() {
+		result = this.DownloadCore(req)
+		close(okChan)
+	}()
+	select {
+	case <-timeout.C:
+		return nil
+	case <-okChan:
+		return result
+	}
 }
 
 /*
@@ -174,7 +192,7 @@ func (this *HttpDownloader) changeCharsetEncodingAuto(contentTypeStr string, sor
 
 	var sorbody []byte
 	if sorbody, err = ioutil.ReadAll(destReader); err != nil {
-		mlog.LogInst().LogError(err.Error())
+		//mlog.LogInst().LogError(err.Error())
 		// For gb2312, an error will be returned.
 		// Error like: simplifiedchinese: invalid GBK encoding
 		// return ""
@@ -189,14 +207,14 @@ func (this *HttpDownloader) changeCharsetEncodingAutoGzipSupport(contentTypeStr 
 	var err error
 	gzipReader, err := gzip.NewReader(sor)
 	if err != nil {
-		mlog.LogInst().LogError(err.Error())
+		//mlog.LogInst().LogError(err.Error())
 		return ""
 	}
 	defer gzipReader.Close()
 	destReader, err := charset.NewReader(gzipReader, contentTypeStr)
 
 	if err != nil {
-		mlog.LogInst().LogError(err.Error())
+		//mlog.LogInst().LogError(err.Error())
 		destReader = sor
 	}
 
@@ -276,7 +294,6 @@ func (this *HttpDownloader) downloadFile(p *page.Page, req *request.Request) (*p
 	}
 
 	var resp *http.Response
-
 	if proxystr := req.GetProxyHost(); len(proxystr) != 0 {
 		//using http proxy
 		//fmt.Print("HttpProxy Enter ",proxystr,"\n")

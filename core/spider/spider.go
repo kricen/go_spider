@@ -93,6 +93,16 @@ func (this *Spider) GetAll(urls []string, respType string) []*page_items.PageIte
 	return pip.GetCollected()
 }
 
+func (this *Spider) GetByRequestCore(req *request.Request) *page_items.PageItems {
+	var reqs []*request.Request
+	reqs = append(reqs, req)
+	items := this.GetAllByRequest(reqs)
+	if len(items) != 0 {
+		return items[0]
+	}
+	return nil
+}
+
 // Deal with one url and return the PageItems with other setting.
 func (this *Spider) GetByRequest(req *request.Request) *page_items.PageItems {
 	var reqs []*request.Request
@@ -102,6 +112,7 @@ func (this *Spider) GetByRequest(req *request.Request) *page_items.PageItems {
 		return items[0]
 	}
 	return nil
+
 }
 
 // Deal with several urls and return the PageItems slice
