@@ -58,20 +58,8 @@ func (this *HttpDownloader) DownloadCore(req *request.Request) *page.Page {
 }
 
 func (this *HttpDownloader) Download(req *request.Request) *page.Page {
-	timeout := time.NewTimer(15 * time.Second)
-	okChan := make(chan int, 1)
-	var result *page.Page
-	defer timeout.Stop()
-	go func() {
-		result = this.DownloadCore(req)
-		close(okChan)
-	}()
-	select {
-	case <-timeout.C:
-		return nil
-	case <-okChan:
-		return result
-	}
+	return this.DownloadCore(req)
+
 }
 
 /*
@@ -235,9 +223,11 @@ func (this *HttpDownloader) changeCharsetEncodingAutoGzipSupport(contentTypeStr 
 func connectByHttp(p *page.Page, req *request.Request) (*http.Response, error) {
 	client := &http.Client{
 		CheckRedirect: req.GetRedirectFunc(),
+		Timeout:       15 * time.Second,
 	}
 
 	httpreq, err := http.NewRequest(req.GetMethod(), req.GetUrl(), strings.NewReader(req.GetPostdata()))
+
 	if header := req.GetHeader(); header != nil {
 		httpreq.Header = req.GetHeader()
 	}
@@ -249,6 +239,7 @@ func connectByHttp(p *page.Page, req *request.Request) (*http.Response, error) {
 	}
 
 	var resp *http.Response
+
 	if resp, err = client.Do(httpreq); err != nil {
 		if e, ok := err.(*url.Error); ok && e.Err != nil && e.Err.Error() == "normal" {
 			//  normal
@@ -274,6 +265,7 @@ func connectByHttpProxy(p *page.Page, in_req *request.Request) (*http.Response, 
 		Transport: &http.Transport{
 			Proxy: http.ProxyURL(proxy),
 		},
+		Timeout: 15 * time.Second,
 	}
 	resp, err := client.Do(request)
 	if err != nil {
